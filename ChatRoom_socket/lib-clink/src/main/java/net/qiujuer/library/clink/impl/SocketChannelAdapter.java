@@ -72,11 +72,24 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         }
     }
 
+    private boolean runed;
+
     private final IoProvider.HandleInputCallback inputCallback = new IoProvider.HandleInputCallback() {
         @Override
         protected void canProviderInput() {
+
             if (isClosed.get()) {
                 return;
+            }
+
+            if(runed){
+                return;
+            }
+            runed = true;
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
 
             IoArgs args = new IoArgs();

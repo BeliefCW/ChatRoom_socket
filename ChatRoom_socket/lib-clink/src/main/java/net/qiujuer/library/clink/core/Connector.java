@@ -1,5 +1,7 @@
 package net.qiujuer.library.clink.core;
 
+import net.qiujuer.library.clink.box.StringReceivePacket;
+import net.qiujuer.library.clink.box.StringSendPacket;
 import net.qiujuer.library.clink.impl.SocketChannelAdapter;
 
 import java.io.Closeable;
@@ -15,6 +17,8 @@ public class Connector implements Closeable, SocketChannelAdapter.OnChannelStatu
     private SocketChannel channel;
     private Sender sender;
     private Receiver receiver;
+    private SendDispatcher sendDispatcher;
+    private ReceiveDispatcher receiveDispatcher;
 
     public void setup(SocketChannel socketChannel) throws IOException {
         this.channel = socketChannel;
@@ -25,17 +29,13 @@ public class Connector implements Closeable, SocketChannelAdapter.OnChannelStatu
         this.sender = adapter;
         this.receiver = adapter;
 
-        readNextMessage();
+
     }
 
-    private void readNextMessage() {
-        if (receiver != null) {
-            try {
-                receiver.receiveAsync(echoReceiveListener);
-            } catch (IOException e) {
-                System.out.println("开始接收数据异常：" + e.getMessage());
-            }
-        }
+    public void send(String msg){
+        SendPacket packet = new StringSendPacket(msg);
+        sendDispatcher.send(packet);
+
     }
 
     @Override
@@ -49,22 +49,19 @@ public class Connector implements Closeable, SocketChannelAdapter.OnChannelStatu
     }
 
 
-    private IoArgs.IoArgsEventListener echoReceiveListener = new IoArgs.IoArgsEventListener() {
-        @Override
-        public void onStarted(IoArgs args) {
 
-        }
-
-        @Override
-        public void onCompleted(IoArgs args) {
-            // 打印
-            onReceiveNewMessage(args.bufferString());
-            // 读取下一条数据
-            readNextMessage();
-        }
-    };
 
     protected void onReceiveNewMessage(String str) {
         System.out.println(key.toString() + ":" + str);
     }
+
+    private ReceiveDispatcher.RceivePacketCallback rceivePacketCallback = new ReceiveDispatcher.RceivePacketCallback() {
+        @Override
+        public void onReceivePacketComplated(ReceivePacket packet) {
+            if(packet instanceof StringReceivePacket){
+                String msg = ((StringReceivePacket) packet).string();
+                onReceiveNewMessage(msg);
+            }
+        }
+    };
 }
